@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRYON — Virtual Try-On Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070707;
+  --surface: #101010;
+  --surface-2: #181818;
+  --surface-3: #222;
+  --border: #252525;
+  --border-dim: #1a1a1a;
+  --accent: #c9a84c;
+  --accent-dim: rgba(201,168,76,0.12);
+  --accent-glow: rgba(201,168,76,0.06);
+  --text: #f0ede8;
+  --text-dim: #7a7772;
+  --text-muted: #3a3835;
+  --green: #5a9e78;
+  --green-dim: rgba(90,158,120,0.12);
+  --red: #c45252;
+  --red-dim: rgba(196,82,82,0.12);
+  --amber: #d4814a;
+  --amber-dim: rgba(212,129,74,0.12);
+  --blue: #5a7fa0;
+  --blue-dim: rgba(90,127,160,0.12);
+  --sidebar-w: 220px;
+  --header-h: 56px;
+  --radius: 6px;
+  --radius-sm: 3px;
+  --mono: 'Space Mono', monospace;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── LOGIN ── */
+#login-screen {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  z-index: 1000;
+  transition: opacity 0.4s, visibility 0.4s;
+}
+#login-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.login-box {
+  width: 380px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 48px 40px;
+  position: relative;
+}
+.login-box::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.login-logo {
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.login-logo span { color: var(--accent); }
+.login-tagline {
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+.login-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.login-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  letter-spacing: 0.04em;
+}
+.login-input:focus { border-color: var(--accent); }
+.login-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.login-btn:hover { opacity: 0.88; }
+.login-error {
+  margin-top: 12px;
+  color: var(--red);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  min-height: 16px;
+}
+
+/* ── APP SHELL ── */
+#app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border-dim);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-logo {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.sidebar-logo-text {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+.sidebar-logo-text span { color: var(--accent); }
+.sidebar-logo-sub {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 0;
+  overflow-y: auto;
+}
+.nav-section-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 12px 20px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--accent-glow); }
+.nav-item.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--accent);
+}
+.nav-icon { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 20px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-dim);
+}
+.workspace-pill {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.credit-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--text-muted);
+  margin-top: 10px; margin-bottom: 4px;
+  letter-spacing: 0.1em;
+}
+.credit-bar-track {
+  height: 2px; background: var(--surface-3); border-radius: 1px;
+}
+.credit-bar-fill {
+  height: 100%; background: var(--accent); border-radius: 1px;
+  transition: width 0.5s ease;
+}
+
+/* ── MAIN ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.topbar {
+  height: var(--header-h);
+  border-bottom: 1px solid var(--border-dim);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.topbar-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  flex: 1;
+}
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--text-muted); color: var(--text); }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { opacity: 0.88; color: #000; }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--surface-2); border-color: var(--border); }
+.btn-danger { border-color: var(--red-dim); color: var(--red); }
+.btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+.btn-sm { padding: 5px 10px; font-size: 9px; }
+.btn-icon { padding: 7px; }
+
+/* ── STAT CARDS ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--border-dim);
+  border: 1px solid var(--border-dim);
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--surface);
+  padding: 20px 22px;
+  transition: background 0.15s;
+}
+.stat-card:hover { background: var(--surface-2); }
+.stat-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.stat-value {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--text);
+}
+.stat-value.accent { color: var(--accent); }
+.stat-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  letter-spacing: 0.06em;
+}
+
+/* ── TABLE ── */
+.table-wrap {
+  border: 1px solid var(--border-dim);
+  overflow: hidden;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+thead th {
+  background: var(--surface);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-dim);
+  white-space: nowrap;
+  font-weight: 400;
+}
+tbody tr {
+  border-bottom: 1px solid var(--border-dim);
+  transition: background 0.1s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface); }
+tbody td {
+  padding: 10px 14px;
+  color: var(--text-dim);
+  vertical-align: middle;
+}
+tbody td:first-child { color: var(--text); }
+.table-empty {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+/* ── BADGES / STATUS ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-green .badge-dot { background: var(--green); }
+.badge-red { background: var(--red-dim); color: var(--red); }
+.badge-red .badge-dot { background: var(--red); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); }
+.badge-amber .badge-dot { background: var(--amber); }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+.badge-blue .badge-dot { background: var(--blue); }
+.badge-muted { background: var(--surface-2); color: var(--text-muted); }
+.badge-muted .badge-dot { background: var(--text-muted); }
+.badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+/* ── PROGRESS BAR ── */
+.progress-track {
+  height: 3px; background: var(--surface-3); border-radius: 2px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+.progress-fill.green { background: var(--green); }
+
+/* ── SECTION HEADER ── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.section-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 8px;
+  letter-spacing: 0.06em;
+}
+
+/* ── FILTERS ── */
+.filters {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 16px;
+}
+.filter-select, .filter-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 6px 10px;
+  outline: none;
+  letter-spacing: 0.04em;
+  min-width: 120px;
+  transition: border-color 0.15s;
+}
+.filter-select:focus, .filter-input:focus { border-color: var(--accent); color: var(--text); }
+.filter-input { min-width: 180px; }
+option { background: var(--surface-2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+.modal-overlay.open { opacity: 1; visibility: visible; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  transform: translateY(12px);
+  transition: transform 0.25s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-top {
+  position: relative;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.modal-top::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.modal-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+}
+.modal-close {
+  position: absolute; top: 20px; right: 24px;
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 4px;
+  transition: color 0.15s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 24px 28px; }
+.modal-footer {
+  padding: 16px 28px;
+  border-top: 1px solid var(--border-dim);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* ── FORM ── */
+.form-row { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  letter-spacing: 0.02em;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-select option { background: var(--surface-2); }
+.form-hint { font-size: 9px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.06em; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── DROPZONE ── */
+.dropzone {
+  border: 1px dashed var(--border);
+  padding: 36px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+.dropzone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+}
+.dropzone-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
+.dropzone-text { font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+.dropzone-sub { font-size: 9px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.08em; }
+.dropzone-preview {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;
+}
+.dropzone-thumb {
+  width: 56px; height: 56px;
+  object-fit: cover; border: 1px solid var(--border);
+}
+
+/* ── MODELS GRID ── */
+.models-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--border-dim);
+  border: 1px solid var(--border-dim);
+}
+.model-card {
+  background: var(--surface);
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.model-card:hover { background: var(--surface-2); }
+.model-card.selected {
+  background: var(--accent-dim);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.model-avatar {
+  width: 100%; aspect-ratio: 2/3;
+  background: var(--surface-3);
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.model-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.model-avatar-placeholder {
+  font-size: 32px;
+  color: var(--text-muted);
+  font-family: var(--serif);
+}
+.model-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.model-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+.model-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 18px; height: 18px;
+  background: var(--accent); border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  font-size: 10px; color: #000; font-weight: 700;
+}
+.model-card.selected .model-check { display: flex; }
+
+/* ── ASSETS GRID ── */
+.assets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.asset-card {
+  background: var(--surface);
+  border: 1px solid var(--border-dim);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.asset-card:hover { border-color: var(--border); }
+.asset-card.selected { border-color: var(--accent); }
+.asset-thumb {
+  aspect-ratio: 2/3;
+  background: var(--surface-3);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.asset-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.asset-thumb-placeholder { font-size: 40px; color: var(--text-muted); }
+.asset-cb {
+  position: absolute; top: 8px; left: 8px;
+  width: 18px; height: 18px;
+  border: 1px solid var(--border); background: rgba(0,0,0,0.6);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.asset-card.selected .asset-cb {
+  background: var(--accent); border-color: var(--accent);
+}
+.asset-info { padding: 10px 12px; }
+.asset-title { font-size: 10px; color: var(--text); margin-bottom: 2px; letter-spacing: 0.04em; }
+.asset-detail { font-size: 9px; color: var(--text-muted); letter-spacing: 0.06em; }
+.asset-actions {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-dim);
+  display: flex; gap: 6px;
+}
+
+/* ── JOB CARD ── */
+.job-row { padding: 14px 0; border-bottom: 1px solid var(--border-dim); }
+.job-row:last-child { border-bottom: none; }
+.job-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.job-name { font-size: 11px; color: var(--text); letter-spacing: 0.04em; flex: 1; }
+.job-stats { font-size: 9px; color: var(--text-muted); letter-spacing: 0.06em; margin-top: 4px; }
+
+/* ── TOAST ── */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 1000; pointer-events: none;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  padding: 10px 16px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  animation: slideIn 0.25s ease;
+  min-width: 240px;
+  max-width: 360px;
+  pointer-events: auto;
+}
+.toast.success { border-left-color: var(--green); }
+.toast.error { border-left-color: var(--red); color: var(--red); }
+.toast.warning { border-left-color: var(--amber); }
+@keyframes slideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px; background: var(--border-dim); margin: 24px 0;
+}
+
+/* ── INFO ROW ── */
+.info-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1px;
+  background: var(--border-dim); border: 1px solid var(--border-dim);
+}
+.info-cell { background: var(--surface); padding: 14px 18px; }
+.info-cell-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.info-cell-value { font-size: 12px; color: var(--text); letter-spacing: 0.02em; word-break: break-all; }
+
+/* ── SPINNER ── */
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay {
+  display: flex; align-items: center; justify-content: center;
+  padding: 64px; gap: 12px;
+  color: var(--text-muted);
+  font-size: 11px; letter-spacing: 0.1em;
+}
+
+/* ── INLINE TEXT ── */
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--serif); }
+.text-accent { color: var(--accent); }
+.text-dim { color: var(--text-dim); }
+.text-muted { color: var(--text-muted); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-sm { font-size: 10px; }
+.text-xs { font-size: 9px; letter-spacing: 0.08em; }
+
+/* ── FLEX UTILS ── */
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-16 { margin-bottom: 16px; }
+
+/* ── GARMENT THUMB IN TABLE ── */
+.g-thumb {
+  width: 36px; height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--border-dim);
+  background: var(--surface-2);
+  display: block;
+}
+.g-thumb-placeholder {
+  width: 36px; height: 48px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* QUALITY METER */
+.quality-ring {
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.quality-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+
+/* CHECKBOX */
+.cb-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cb-row input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+.cb-row label { font-size: 11px; color: var(--text-dim); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">TRY<span>ON</span></div>
+    <div class="login-tagline">Enterprise Virtual Try-On Platform</div>
+    <label class="login-label" for="login-key">Workspace API Key</label>
+    <input class="login-input" id="login-key" type="password" placeholder="tryon_••••••••••••••••" autocomplete="off">
+    <button class="login-btn" id="login-btn">Enter Platform</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">TRY<span>ON</span></div>
+      <div class="sidebar-logo-sub">Virtual Try-On</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" data-view="dashboard">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-section-label">Catalog</div>
+      <div class="nav-item" data-view="garments">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L2 5v9h12V5l-4-3-2 2-2-2z"/></svg>
+        Garments
+        <span class="nav-badge" id="nav-garment-count" style="display:none"></span>
+      </div>
+      <div class="nav-item" data-view="models">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+        Models
+      </div>
+      <div class="nav-section-label">Generation</div>
+      <div class="nav-item" data-view="tryon">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3,1 13,8 3,15"/></svg>
+        Try-On Jobs
+        <span class="nav-badge" id="nav-job-badge" style="display:none"></span>
+      </div>
+      <div class="nav-item" data-view="assets">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M1 6h14"/><circle cx="4.5" cy="9" r="1.5"/><path d="M7 11.5l2.5-3 2 2 1.5-1.5 2 2"/></svg>
+        Assets
+        <span class="nav-badge" id="nav-asset-badge" style="display:none"></span>
+      </div>
+      <div class="nav-section-label">Workspace</div>
+      <div class="nav-item" data-view="analytics">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 8,10 11,5 15,8"/></svg>
+        Analytics
+      </div>
+      <div class="nav-item" data-view="settings">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>
+        Settings
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="workspace-pill" id="ws-name">—</div>
+      <div class="credit-bar-label">
+        <span>Credits</span>
+        <span id="ws-credits">—</span>
+      </div>
+      <div class="credit-bar-track">
+        <div class="credit-bar-fill" id="ws-credit-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content">
+      <!-- views injected here -->
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-top">
+      <div class="modal-title">Upload Garment</div>
+      <button class="modal-close" onclick="closeModal('upload-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="upload-dropzone">
+        <input type="file" id="upload-file" accept="image/jpeg,image/png,image/webp" multiple>
+        <div class="dropzone-icon">↑</div>
+        <div class="dropzone-text">Drop image here or click to browse</div>
+        <div class="dropzone-sub">JPG · PNG · WebP · Max 20MB</div>
+      </div>
+      <div class="dropzone-preview" id="upload-preview"></div>
+      <div class="divider"></div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label class="form-label">Garment Name</label>
+          <input class="form-input" id="up-name" placeholder="e.g. Linen Blazer">
+        </div>
+        <div class="form-row">
+          <label class="form-label">SKU</label>
+          <input class="form-input" id="up-sku" placeholder="e.g. BLZ-001">
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="up-category">
+            <option value="">Auto-detect</option>
+            <option value="tops">Tops</option>
+            <option value="bottoms">Bottoms</option>
+            <option value="dresses">Dresses</option>
+            <option value="outerwear">Outerwear</option>
+            <option value="footwear">Footwear</option>
+            <option value="accessories">Accessories</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Collection</label>
+          <input class="form-input" id="up-collection" placeholder="e.g. SS25">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-hint">Gemini AI will auto-analyze quality, category, tags, and color after upload.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('upload-modal')">Cancel</button>
+      <button class="btn btn-primary" id="upload-submit-btn" onclick="submitUpload()">Upload & Analyze</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK UPLOAD MODAL -->
+<div class="modal-overlay" id="bulk-modal">
+  <div class="modal">
+    <div class="modal-top">
+      <div class="modal-title">Bulk Upload</div>
+      <button class="modal-close" onclick="closeModal('bulk-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="bulk-dropzone">
+        <input type="file" id="bulk-file" accept=".zip">
+        <div class="dropzone-icon">⇅</div>
+        <div class="dropzone-text">Drop ZIP archive here or click to browse</div>
+        <div class="dropzone-sub">Include metadata.csv for auto-tagging · Max 500MB</div>
+      </div>
+      <div id="bulk-selected-file" style="margin-top:8px;font-size:10px;color:var(--text-dim)"></div>
+      <div class="divider"></div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label class="form-label">Default Collection</label>
+          <input class="form-input" id="bulk-collection" placeholder="e.g. SS25">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Default Season</label>
+          <input class="form-input" id="bulk-season" placeholder="e.g. Spring 2025">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-hint">
+          Optional: include <strong>metadata.csv</strong> in the ZIP with columns: filename, name, sku, category, collection, season
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('bulk-modal')">Cancel</button>
+      <button class="btn btn-primary" id="bulk-submit-btn" onclick="submitBulkUpload()">Upload Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE JOB MODAL -->
+<div class="modal-overlay" id="job-modal">
+  <div class="modal" style="width:640px;max-width:95vw">
+    <div class="modal-top">
+      <div class="modal-title">New Try-On Job</div>
+      <button class="modal-close" onclick="closeModal('job-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Job Name</label>
+        <input class="form-input" id="job-name" placeholder="e.g. SS25 Campaign — All Tops">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Select Garments</label>
+        <div class="form-hint mb-16">Click garments to select. Use filters to narrow.</div>
+        <div class="filters" style="margin-bottom:10px">
+          <select class="filter-select" id="jg-cat-filter" onchange="loadJobGarments()">
+            <option value="">All Categories</option>
+            <option value="tops">Tops</option>
+            <option value="bottoms">Bottoms</option>
+            <option value="dresses">Dresses</option>
+            <option value="outerwear">Outerwear</option>
+          </select>
+        </div>
+        <div id="job-garment-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border-dim)"></div>
+        <div class="text-xs text-muted mt-4" id="job-garment-count">0 garments selected</div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Select Models</label>
+        <div class="form-hint mb-16">Click to select. Multiple models = one render per model per garment.</div>
+        <div id="job-model-grid" style="max-height:200px;overflow-y:auto"></div>
+        <div class="text-xs text-muted mt-4" id="job-model-count">0 models selected</div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Poses</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+          <div class="cb-row"><input type="checkbox" id="pose-front" value="front" checked><label for="pose-front">Front</label></div>
+          <div class="cb-row"><input type="checkbox" id="pose-back" value="back"><label for="pose-back">Back</label></div>
+          <div class="cb-row"><input type="checkbox" id="pose-side" value="side"><label for="pose-side">Side</label></div>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label class="form-label">Resolution</label>
+          <select class="form-select" id="job-resolution">
+            <option value="2K">2K (recommended)</option>
+            <option value="1K">1K</option>
+            <option value="4K">4K</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Background</label>
+          <select class="form-select" id="job-bg">
+            <option value="white">White</option>
+            <option value="transparent">Transparent (PNG)</option>
+            <option value="grey">Light Grey</option>
+          </select>
+        </div>
+      </div>
+      <div class="text-xs text-muted" id="job-cost-estimate">— Select garments and models to see credit estimate</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('job-modal')">Cancel</button>
+      <button class="btn btn-primary" id="job-submit-btn" onclick="submitJob()">Queue Job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const S = {
+  apiKey: localStorage.getItem('tryon_key') || '',
+  workspace: null,
+  view: 'dashboard',
+  // job modal
+  selectedGarments: new Set(),
+  selectedModels: new Set(),
+  // assets
+  selectedAssets: new Set(),
+};
+
+// ============================================================
+// API CLIENT
+// ============================================================
+const api = {
+  async req(path, opts = {}) {
+    const isFormData = opts.body instanceof FormData;
+    const res = await fetch(`/api${path}`, {
+      ...opts,
+      headers: {
+        'X-API-Key': S.apiKey,
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...opts.headers,
+      },
+    });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { msg = (await res.json()).error || msg; } catch {}
+      throw new Error(msg);
+    }
+    return res.json();
+  },
+  get: (p) => api.req(p),
+  post: (p, b) => api.req(p, { method: 'POST', body: b instanceof FormData ? b : JSON.stringify(b) }),
+  patch: (p, b) => api.req(p, { method: 'PATCH', body: JSON.stringify(b) }),
+  del: (p) => api.req(p, { method: 'DELETE' }),
+};
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3800);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const VIEW_TITLES = {
+  dashboard: 'Dashboard',
+  garments: 'Garments',
+  models: 'Model Library',
+  tryon: 'Try-On Jobs',
+  assets: 'Assets',
+  analytics: 'Analytics',
+  settings: 'Settings',
+};
+
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => navigate(el.dataset.view));
+});
+
+function navigate(view) {
+  S.view = view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+  document.getElementById('topbar-title').textContent = VIEW_TITLES[view] || view;
+  renderView(view);
+}
+
+async function renderView(view) {
+  const content = document.getElementById('content');
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = '';
+
+  switch (view) {
+    case 'dashboard': await renderDashboard(content, actions); break;
+    case 'garments':  await renderGarments(content, actions); break;
+    case 'models':    await renderModels(content, actions); break;
+    case 'tryon':     await renderJobs(content, actions); break;
+    case 'assets':    await renderAssets(content, actions); break;
+    case 'analytics': await renderAnalytics(content, actions); break;
+    case 'settings':  await renderSettings(content, actions); break;
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function statusBadge(s) {
+  const map = {
+    ready: 'green', completed: 'green', approved: 'green', published: 'green',
+    processing: 'blue', pending: 'amber',
+    draft: 'muted', failed: 'red', rejected: 'red', cancelled: 'muted',
+  };
+  const cls = map[s] || 'muted';
+  return `<span class="badge badge-${cls}"><span class="badge-dot"></span>${s}</span>`;
+}
+
+function qualityColor(score) {
+  if (score >= 80) return 'var(--green)';
+  if (score >= 60) return 'var(--amber)';
+  if (score >= 40) return 'var(--accent)';
+  return 'var(--red)';
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d.replace(' ', 'T') + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtBytes(b) {
+  if (!b) return '—';
+  if (b < 1024) return b + 'B';
+  if (b < 1024*1024) return (b/1024).toFixed(0) + 'KB';
+  return (b/1024/1024).toFixed(1) + 'MB';
+}
+
+function loading() {
+  return `<div class="loading-overlay"><div class="spinner"></div> Loading…</div>`;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function renderDashboard(c, a) {
+  c.innerHTML = loading();
+  try {
+    const [overview, quality] = await Promise.all([
+      api.get('/analytics/overview'),
+      api.get('/analytics/quality'),
+    ]);
+    const g = overview.garments, j = overview.jobs, as = overview.assets;
+
+    c.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Garments</div>
+          <div class="stat-value">${g.total}</div>
+          <div class="stat-sub">${g.ready} ready · ${g.draft} draft</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Assets Generated</div>
+          <div class="stat-value accent">${as.total}</div>
+          <div class="stat-sub">${as.approved} approved · ${as.published} live</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Try-On Coverage</div>
+          <div class="stat-value">${overview.try_on_coverage_pct}<span style="font-size:18px">%</span></div>
+          <div class="stat-sub">of catalog has a try-on</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Credits Remaining</div>
+          <div class="stat-value">${overview.credits.remaining.toLocaleString()}</div>
+          <div class="stat-sub">${overview.credits.used_period} used this period</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Quality Score</div>
+          <div class="stat-value" style="color:${qualityColor(g.avg_quality)}">${g.avg_quality}</div>
+          <div class="stat-sub">out of 100</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Jobs</div>
+          <div class="stat-value">${j.total}</div>
+          <div class="stat-sub">${j.processing} active · ${j.failed} failed</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Quality Distribution</div>
+      </div>
+      <div class="info-grid mb-16" style="margin-bottom:28px">
+        ${quality.distribution.map(d => `
+          <div class="info-cell">
+            <div class="info-cell-label">${d.tier}</div>
+            <div class="info-cell-value">${d.count} garments</div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${quality.flagged_garments.length ? `
+        <div class="section-header">
+          <div class="section-title">Flagged Garments <span class="section-count">${quality.flagged_garments.length} need attention</span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Garment</th><th>SKU</th><th>Score</th><th>Issues</th></tr></thead>
+            <tbody>
+              ${quality.flagged_garments.map(g => `
+                <tr>
+                  <td>${g.name || '—'}</td>
+                  <td class="text-muted">${g.sku || '—'}</td>
+                  <td><span style="color:${qualityColor(g.quality_score)}">${g.quality_score}</span></td>
+                  <td class="text-muted text-xs">${(g.quality_issues || []).join(' · ') || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : ''}
+    `;
+  } catch(e) {
+    c.innerHTML = `<div class="loading-overlay text-red">${e.message}</div>`;
+  }
+}
+
+// ============================================================
+// GARMENTS
+// ============================================================
+let garmentFilters = { category: '', status: '', q: '' };
+
+async function renderGarments(c, a) {
+  a.innerHTML = `
+    <button class="btn" onclick="openModal('bulk-modal')">⇅ Bulk Upload</button>
+    <button class="btn btn-primary" onclick="openModal('upload-modal')">↑ Upload</button>
+  `;
+  c.innerHTML = `
+    <div class="filters">
+      <input class="filter-input" id="g-search" placeholder="Search name or SKU…" oninput="garmentFilters.q=this.value;loadGarmentList()" value="${garmentFilters.q}">
+      <select class="filter-select" id="g-cat" onchange="garmentFilters.category=this.value;loadGarmentList()">
+        <option value="">All Categories</option>
+        <option value="tops">Tops</option>
+        <option value="bottoms">Bottoms</option>
+        <option value="dresses">Dresses</option>
+        <option value="outerwear">Outerwear</option>
+        <option value="footwear">Footwear</option>
+        <option value="accessories">Accessories</option>
+      </select>
+      <select class="filter-select" id="g-status" onchange="garmentFilters.status=this.value;loadGarmentList()">
+        <option value="">All Status</option>
+        <option value="ready">Ready</option>
+        <option value="draft">Draft</option>
+        <option value="archived">Archived</option>
+      </select>
+    </div>
+    <div id="garment-table-wrap">${loading()}</div>
+  `;
+  // restore filter selects
+  if (garmentFilters.category) document.getElementById('g-cat').value = garmentFilters.category;
+  if (garmentFilters.status) document.getElementById('g-status').value = garmentFilters.status;
+  await loadGarmentList();
+}
+
+async function loadGarmentList() {
+  const w = document.getElementById('garment-table-wrap');
+  if (!w) return;
+  const params = new URLSearchParams({ limit: 50 });
+  if (garmentFilters.category) params.set('category', garmentFilters.category);
+  if (garmentFilters.status) params.set('status', garmentFilters.status);
+
+  try {
+    const data = await api.get(`/garments?${params}`);
+    let rows = data.data;
+    const q = garmentFilters.q.toLowerCase();
+    if (q) rows = rows.filter(g => (g.name||'').toLowerCase().includes(q) || (g.sku||'').toLowerCase().includes(q));
+
+    // update sidebar badge
+    const badge = document.getElementById('nav-garment-count');
+    badge.textContent = data.pagination.total;
+    badge.style.display = data.pagination.total ? '' : 'none';
+
+    if (!rows.length) {
+      w.innerHTML = `<div class="table-wrap"><div class="table-empty text-muted">No garments found</div></div>`;
+      return;
+    }
+
+    w.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Name</th><th>SKU</th><th>Category</th><th>Status</th><th>Quality</th><th>Analyzed</th><th>Uploaded</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(g => `
+              <tr>
+                <td style="width:48px;padding:6px 8px">
+                  ${g.file_url
+                    ? `<img class="g-thumb" src="${g.file_url}" alt="" onerror="this.style.display='none'">`
+                    : `<div class="g-thumb-placeholder">◻</div>`}
+                </td>
+                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.name || '<span class="text-muted">Untitled</span>'}</td>
+                <td class="text-muted">${g.sku || '—'}</td>
+                <td class="text-muted">${g.category || '—'}</td>
+                <td>${statusBadge(g.status)}</td>
+                <td>
+                  <span style="color:${qualityColor(g.quality_score)};font-weight:700">${g.quality_score || 0}</span>
+                  <span class="text-muted text-xs">/100</span>
+                </td>
+                <td>${g.ai_analyzed ? '<span class="text-green">✓</span>' : '<span class="text-muted">—</span>'}</td>
+                <td class="text-muted">${fmtDate(g.created_at)}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-sm btn-ghost" onclick="reanalyzeGarment('${g.id}')" title="Re-analyze with AI">↻</button>
+                  <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteGarment('${g.id}','${(g.name||'').replace(/'/g,'')}')" title="Archive">✕</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="text-xs text-muted mt-8">${data.pagination.total} garments total</div>
+    `;
+  } catch(e) {
+    w.innerHTML = `<div class="table-wrap"><div class="table-empty text-red">${e.message}</div></div>`;
+  }
+}
+
+async function reanalyzeGarment(id) {
+  try {
+    toast('Sending to Gemini for analysis…');
+    await api.post(`/garments/${id}/analyze`, {});
+    toast('Analysis complete', 'success');
+    await loadGarmentList();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteGarment(id, name) {
+  if (!confirm(`Archive garment "${name || id}"?`)) return;
+  try {
+    await api.del(`/garments/${id}`);
+    toast('Garment archived', 'success');
+    await loadGarmentList();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Upload
+let uploadFiles = [];
+document.getElementById('upload-file').addEventListener('change', function() {
+  uploadFiles = Array.from(this.files);
+  renderUploadPreview();
+});
+const dz = document.getElementById('upload-dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  uploadFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  renderUploadPreview();
+});
+function renderUploadPreview() {
+  const p = document.getElementById('upload-preview');
+  p.innerHTML = uploadFiles.map(f => {
+    const url = URL.createObjectURL(f);
+    return `<img class="dropzone-thumb" src="${url}" alt="${f.name}">`;
+  }).join('');
+}
+async function submitUpload() {
+  if (!uploadFiles.length) { toast('Select an image first', 'warning'); return; }
+  const btn = document.getElementById('upload-submit-btn');
+  btn.textContent = 'Uploading…'; btn.disabled = true;
+  try {
+    for (const file of uploadFiles) {
+      const fd = new FormData();
+      fd.append('image', file);
+      const name = document.getElementById('up-name').value;
+      const sku = document.getElementById('up-sku').value;
+      const category = document.getElementById('up-category').value;
+      const collection = document.getElementById('up-collection').value;
+      if (name) fd.append('name', name);
+      if (sku) fd.append('sku', sku);
+      if (category) fd.append('category', category);
+      if (collection) fd.append('collection', collection);
+      await api.post('/garments/upload', fd);
+    }
+    toast(`${uploadFiles.length} garment(s) uploaded — Gemini analyzing in background`, 'success');
+    closeModal('upload-modal');
+    uploadFiles = [];
+    document.getElementById('upload-preview').innerHTML = '';
+    if (S.view === 'garments') await loadGarmentList();
+    else navigate('garments');
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.textContent = 'Upload & Analyze'; btn.disabled = false;
+  }
+}
+
+// Bulk upload
+let bulkFile = null;
+document.getElementById('bulk-file').addEventListener('change', function() {
+  bulkFile = this.files[0];
+  document.getElementById('bulk-selected-file').textContent = bulkFile ? `Selected: ${bulkFile.name} (${fmtBytes(bulkFile.size)})` : '';
+});
+async function submitBulkUpload() {
+  if (!bulkFile) { toast('Select a ZIP file first', 'warning'); return; }
+  const btn = document.getElementById('bulk-submit-btn');
+  btn.textContent = 'Uploading…'; btn.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('archive', bulkFile);
+    const col = document.getElementById('bulk-collection').value;
+    const season = document.getElementById('bulk-season').value;
+    if (col) fd.append('collection', col);
+    if (season) fd.append('season', season);
+    const res = await api.post('/garments/bulk-upload', fd);
+    toast(`Processed: ${res.created} created, ${res.failed} failed`, res.failed ? 'warning' : 'success');
+    closeModal('bulk-modal');
+    bulkFile = null;
+    if (S.view === 'garments') await loadGarmentList();
+    else navigate('garments');
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.textContent = 'Upload Archive'; btn.disabled = false;
+  }
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+async function renderModels(c, a) {
+  c.innerHTML = loading();
+  try {
+    const data = await api.get('/models?limit=50');
+    const filters = data.filters;
+    c.innerHTML = `
+      <div class="filters" id="model-filters">
+        <select class="filter-select" onchange="filterModels()">
+          <option value="">All Genders</option>
+          ${filters.gender.map(g => `<option value="${g}">${g}</option>`).join('')}
+        </select>
+        <select class="filter-select" onchange="filterModels()">
+          <option value="">All Body Types</option>
+          ${filters.body_type.map(b => `<option value="${b}">${b}</option>`).join('')}
+        </select>
+        <select class="filter-select" onchange="filterModels()">
+          <option value="">All Ages</option>
+          ${filters.age_range.map(r => `<option value="${r}">${r}</option>`).join('')}
+        </select>
+      </div>
+      <div class="models-grid" id="model-grid">
+        ${data.data.map(m => modelCard(m)).join('')}
+      </div>
+      <div class="text-xs text-muted mt-8">${data.pagination.total} models in library</div>
+    `;
+  } catch(e) {
+    c.innerHTML = `<div class="loading-overlay text-red">${e.message}</div>`;
+  }
+}
+
+function modelCard(m, selectable = false) {
+  const img = m.file_urls?.front
+    ? `<img src="${m.file_urls.front}" alt="${m.name}" onerror="this.parentElement.innerHTML='<div class=model-avatar-placeholder>${m.name[0]}</div>'">`
+    : `<div class="model-avatar-placeholder">${m.name[0]}</div>`;
+  return `
+    <div class="model-card" data-id="${m.id}" ${selectable ? `onclick="toggleModelSel('${m.id}',this)"` : ''}>
+      <div class="model-avatar">${img}</div>
+      <div class="model-check">✓</div>
+      <div class="model-name">${m.name}</div>
+      <div class="model-meta">
+        ${m.body_type} · ${m.gender}<br>
+        ${m.age_range} · ${m.size_label || '—'}<br>
+        ${m.ethnicity || ''}
+      </div>
+    </div>
+  `;
+}
+
+async function filterModels() {
+  const selects = document.querySelectorAll('#model-filters select');
+  const [gender, body_type, age_range] = Array.from(selects).map(s => s.value);
+  const params = new URLSearchParams({ limit: 50 });
+  if (gender) params.set('gender', gender);
+  if (body_type) params.set('body_type', body_type);
+  if (age_range) params.set('age_range', age_range);
+  const g = document.getElementById('model-grid');
+  if (!g) return;
+  g.innerHTML = loading();
+  try {
+    const data = await api.get(`/models?${params}`);
+    g.innerHTML = data.data.map(m => modelCard(m)).join('');
+  } catch(e) { g.innerHTML = `<div class="table-empty text-red">${e.message}</div>`; }
+}
+
+// ============================================================
+// JOBS
+// ============================================================
+let jobPoller = null;
+
+async function renderJobs(c, a) {
+  a.innerHTML = `<button class="btn btn-primary" onclick="openJobModal()">+ New Job</button>`;
+  c.innerHTML = loading();
+  await loadJobs(c);
+  startJobPolling();
+}
+
+async function loadJobs(c) {
+  c = c || document.getElementById('content');
+  if (!c) return;
+  try {
+    const data = await api.get('/jobs?limit=30');
+    const active = data.data.filter(j => ['pending','processing'].includes(j.status)).length;
+    const badge = document.getElementById('nav-job-badge');
+    badge.textContent = active; badge.style.display = active ? '' : 'none';
+
+    if (!data.data.length) {
+      c.innerHTML = `<div class="table-wrap"><div class="table-empty text-muted">No jobs yet — create your first try-on job</div></div>`;
+      return;
+    }
+
+    c.innerHTML = `
+      <div class="table-wrap">
+        ${data.data.map(j => `
+          <div class="job-row" style="padding:14px 20px">
+            <div class="job-meta">
+              <div class="job-name">${j.name || j.id.slice(0,8)}</div>
+              ${statusBadge(j.status)}
+              <span class="text-xs text-muted">${fmtDate(j.created_at)}</span>
+              ${['pending','processing'].includes(j.status) ? `
+                <button class="btn btn-sm btn-ghost btn-danger" onclick="cancelJob('${j.id}')">Cancel</button>
+              ` : j.status === 'failed' ? `
+                <button class="btn btn-sm" onclick="retryJob('${j.id}')">↻ Retry</button>
+              ` : ''}
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill ${j.status === 'completed' ? 'green' : ''}" style="width:${j.progress}%"></div>
+            </div>
+            <div class="job-stats">
+              ${j.completed_items} completed · ${j.failed_items} failed · ${j.total_items} total
+              · ${j.progress}%
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch(e) {
+    if (c) c.innerHTML = `<div class="loading-overlay text-red">${e.message}</div>`;
+  }
+}
+
+function startJobPolling() {
+  clearInterval(jobPoller);
+  jobPoller = setInterval(() => { if (S.view === 'tryon') loadJobs(); }, 4000);
+}
+
+async function cancelJob(id) {
+  try { await api.del(`/jobs/${id}`); toast('Job cancelled'); await loadJobs(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+async function retryJob(id) {
+  try { await api.post(`/jobs/${id}/retry`, {}); toast('Failed items re-queued'); await loadJobs(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+// Job modal
+async function openJobModal() {
+  S.selectedGarments = new Set();
+  S.selectedModels = new Set();
+  document.getElementById('job-name').value = '';
+  document.getElementById('job-garment-count').textContent = '0 garments selected';
+  document.getElementById('job-model-count').textContent = '0 models selected';
+  openModal('job-modal');
+  await Promise.all([loadJobGarments(), loadJobModels()]);
+}
+
+async function loadJobGarments() {
+  const el = document.getElementById('job-garment-list');
+  if (!el) return;
+  const cat = document.getElementById('jg-cat-filter')?.value || '';
+  el.innerHTML = loading();
+  try {
+    const params = new URLSearchParams({ limit: 50, status: 'ready' });
+    if (cat) params.set('category', cat);
+    const data = await api.get(`/garments?${params}`);
+    if (!data.data.length) { el.innerHTML = `<div class="table-empty text-muted" style="padding:20px">No ready garments</div>`; return; }
+    el.innerHTML = `<table style="width:100%">
+      <thead><tr><th></th><th>Name</th><th>SKU</th><th>Category</th><th>Quality</th></tr></thead>
+      <tbody>
+      ${data.data.map(g => `
+        <tr class="${S.selectedGarments.has(g.id) ? 'selected-row' : ''}"
+            style="cursor:pointer;${S.selectedGarments.has(g.id) ? 'background:var(--accent-dim)' : ''}"
+            onclick="toggleGarmentSel('${g.id}',this)">
+          <td style="width:24px;padding:6px 8px">
+            <input type="checkbox" ${S.selectedGarments.has(g.id) ? 'checked' : ''} style="accent-color:var(--accent)" onclick="event.stopPropagation();toggleGarmentSel('${g.id}',this.closest('tr'))">
+          </td>
+          <td>${g.name || '—'}</td>
+          <td class="text-muted">${g.sku || '—'}</td>
+          <td class="text-muted">${g.category || '—'}</td>
+          <td style="color:${qualityColor(g.quality_score)}">${g.quality_score}</td>
+        </tr>
+      `).join('')}
+      </tbody>
+    </table>`;
+  } catch(e) { el.innerHTML = `<div class="table-empty text-red">${e.message}</div>`; }
+}
+
+async function loadJobModels() {
+  const el = document.getElementById('job-model-grid');
+  if (!el) return;
+  try {
+    const data = await api.get('/models?limit=50');
+    el.innerHTML = `<div class="models-grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))">
+      ${data.data.map(m => modelCard(m, true)).join('')}
+    </div>`;
+    // restore previous selections
+    S.selectedModels.forEach(id => {
+      const card = el.querySelector(`[data-id="${id}"]`);
+      if (card) card.classList.add('selected');
+    });
+  } catch(e) { el.innerHTML = `<div class="table-empty text-red">${e.message}</div>`; }
+}
+
+function toggleGarmentSel(id, row) {
+  if (S.selectedGarments.has(id)) {
+    S.selectedGarments.delete(id);
+    row.style.background = '';
+    row.querySelector('input[type=checkbox]').checked = false;
+  } else {
+    S.selectedGarments.add(id);
+    row.style.background = 'var(--accent-dim)';
+    row.querySelector('input[type=checkbox]').checked = true;
+  }
+  updateJobEstimate();
+}
+
+function toggleModelSel(id, card) {
+  if (S.selectedModels.has(id)) {
+    S.selectedModels.delete(id);
+    card.classList.remove('selected');
+  } else {
+    S.selectedModels.add(id);
+    card.classList.add('selected');
+  }
+  updateJobEstimate();
+}
+
+function updateJobEstimate() {
+  const poses = ['front','back','side'].filter(p => document.getElementById(`pose-${p}`)?.checked).length || 1;
+  const total = S.selectedGarments.size * S.selectedModels.size * poses;
+  document.getElementById('job-garment-count').textContent = `${S.selectedGarments.size} garments selected`;
+  document.getElementById('job-model-count').textContent = `${S.selectedModels.size} models selected`;
+  document.getElementById('job-cost-estimate').textContent = total
+    ? `${total} render${total>1?'s':''} · ${total} credit${total>1?'s':''} will be used`
+    : '— Select garments and models to see credit estimate';
+}
+
+async function submitJob() {
+  if (!S.selectedGarments.size) { toast('Select at least one garment', 'warning'); return; }
+  if (!S.selectedModels.size) { toast('Select at least one model', 'warning'); return; }
+  const poses = ['front','back','side'].filter(p => document.getElementById(`pose-${p}`)?.checked);
+  if (!poses.length) { toast('Select at least one pose', 'warning'); return; }
+
+  const btn = document.getElementById('job-submit-btn');
+  btn.textContent = 'Queuing…'; btn.disabled = true;
+  try {
+    await api.post('/jobs', {
+      name: document.getElementById('job-name').value || null,
+      garmentIds: [...S.selectedGarments],
+      modelIds: [...S.selectedModels],
+      poses,
+      settings: {
+        resolution: document.getElementById('job-resolution').value,
+        background: document.getElementById('job-bg').value,
+      },
+    });
+    toast('Job queued successfully!', 'success');
+    closeModal('job-modal');
+    navigate('tryon');
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.textContent = 'Queue Job'; btn.disabled = false;
+  }
+}
+
+// ============================================================
+// ASSETS
+// ============================================================
+async function renderAssets(c, a) {
+  a.innerHTML = `
+    <button class="btn btn-sm" id="bulk-approve-btn" onclick="bulkAssetAction('approved')" style="display:none">✓ Approve Selected</button>
+    <button class="btn btn-sm btn-danger" id="bulk-reject-btn" onclick="bulkAssetAction('rejected')" style="display:none">✕ Reject Selected</button>
+    <button class="btn btn-sm" id="bulk-dl-btn" onclick="bulkDownload()" style="display:none">↓ Download Selected</button>
+  `;
+  S.selectedAssets = new Set();
+  c.innerHTML = `
+    <div class="filters">
+      <select class="filter-select" id="a-status-filter" onchange="loadAssets()">
+        <option value="">All Status</option>
+        <option value="draft">Draft</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="published">Published</option>
+      </select>
+    </div>
+    <div id="assets-wrap">${loading()}</div>
+  `;
+  await loadAssets();
+}
+
+async function loadAssets() {
+  const w = document.getElementById('assets-wrap');
+  if (!w) return;
+  const status = document.getElementById('a-status-filter')?.value || '';
+  const params = new URLSearchParams({ limit: 60 });
+  if (status) params.set('status', status);
+  try {
+    const data = await api.get(`/assets?${params}`);
+    const draftCount = data.data.filter(a => a.status === 'draft').length;
+    const badge = document.getElementById('nav-asset-badge');
+    badge.textContent = draftCount; badge.style.display = draftCount ? '' : 'none';
+
+    if (!data.data.length) {
+      w.innerHTML = `<div class="table-wrap"><div class="table-empty text-muted">No assets yet — run a try-on job to generate</div></div>`;
+      return;
+    }
+
+    w.innerHTML = `
+      <div class="assets-grid" id="asset-grid">
+        ${data.data.map(a => assetCard(a)).join('')}
+      </div>
+      <div class="text-xs text-muted mt-8">${data.pagination.total} assets total</div>
+    `;
+  } catch(e) {
+    w.innerHTML = `<div class="loading-overlay text-red">${e.message}</div>`;
+  }
+}
+
+function assetCard(a) {
+  const thumb = a.file_url
+    ? `<img src="${a.file_url}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div class=asset-thumb-placeholder>◻</div>'">`
+    : `<div class="asset-thumb-placeholder">◻</div>`;
+  return `
+    <div class="asset-card ${S.selectedAssets.has(a.id) ? 'selected' : ''}" id="ac-${a.id}">
+      <div class="asset-thumb">
+        <div class="asset-cb" onclick="toggleAssetSel('${a.id}')">
+          ${S.selectedAssets.has(a.id) ? '✓' : ''}
+        </div>
+        ${thumb}
+      </div>
+      <div class="asset-info">
+        <div class="asset-title">${a.garment_name || 'Garment'} — ${a.model_name || 'Model'}</div>
+        <div class="asset-detail">${a.resolution || ''} · ${a.format?.toUpperCase() || ''} · ${fmtBytes(a.file_size)}</div>
+        <div style="margin-top:4px">${statusBadge(a.status)}</div>
+      </div>
+      <div class="asset-actions">
+        ${a.status !== 'approved' ? `<button class="btn btn-sm" style="color:var(--green);border-color:var(--green-dim)" onclick="setAssetStatus('${a.id}','approved')">✓ Approve</button>` : ''}
+        ${a.status !== 'rejected' ? `<button class="btn btn-sm btn-danger" onclick="setAssetStatus('${a.id}','rejected')">✕</button>` : ''}
+        <a href="/api/assets/${a.id}/download?api_key=${S.apiKey}" class="btn btn-sm btn-ghost" download>↓</a>
+      </div>
+    </div>
+  `;
+}
+
+function toggleAssetSel(id) {
+  if (S.selectedAssets.has(id)) S.selectedAssets.delete(id);
+  else S.selectedAssets.add(id);
+  const card = document.getElementById(`ac-${id}`);
+  if (card) {
+    card.classList.toggle('selected', S.selectedAssets.has(id));
+    card.querySelector('.asset-cb').textContent = S.selectedAssets.has(id) ? '✓' : '';
+  }
+  const show = S.selectedAssets.size > 0;
+  ['bulk-approve-btn','bulk-reject-btn','bulk-dl-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+}
+
+async function setAssetStatus(id, status) {
+  try {
+    await api.patch(`/assets/${id}/status`, { status });
+    toast(`Asset ${status}`, status === 'approved' ? 'success' : 'info');
+    await loadAssets();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function bulkAssetAction(status) {
+  if (!S.selectedAssets.size) return;
+  try {
+    await api.post('/assets/bulk-status', { ids: [...S.selectedAssets], status });
+    toast(`${S.selectedAssets.size} assets ${status}`, 'success');
+    S.selectedAssets = new Set();
+    await loadAssets();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function bulkDownload() {
+  if (!S.selectedAssets.size) return;
+  toast(`Preparing ZIP of ${S.selectedAssets.size} assets…`);
+  try {
+    const res = await fetch('/api/assets/bulk-download', {
+      method: 'POST',
+      headers: { 'X-API-Key': S.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [...S.selectedAssets] }),
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `tryon-assets-${Date.now()}.zip`; a.click();
+    URL.revokeObjectURL(url);
+    toast('Download started', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+async function renderAnalytics(c, a) {
+  c.innerHTML = loading();
+  try {
+    const [overview, garmentStats, modelStats] = await Promise.all([
+      api.get('/analytics/overview'),
+      api.get('/analytics/garments?limit=10'),
+      api.get('/analytics/models'),
+    ]);
+
+    c.innerHTML = `
+      <div class="stats-grid" style="margin-bottom:28px">
+        <div class="stat-card"><div class="stat-label">Total Garments</div><div class="stat-value">${overview.garments.total}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Assets</div><div class="stat-value accent">${overview.assets.total}</div></div>
+        <div class="stat-card"><div class="stat-label">Coverage</div><div class="stat-value">${overview.try_on_coverage_pct}<span style="font-size:18px">%</span></div></div>
+        <div class="stat-card"><div class="stat-label">Avg Quality</div><div class="stat-value" style="color:${qualityColor(overview.garments.avg_quality)}">${overview.garments.avg_quality}</div></div>
+      </div>
+
+      <div class="section-header mt-24"><div class="section-title">Top Garments by Assets</div></div>
+      <div class="table-wrap mb-16" style="margin-bottom:28px">
+        <table>
+          <thead><tr><th>Garment</th><th>SKU</th><th>Category</th><th>Quality</th><th>Assets</th><th>Approved</th><th>Published</th></tr></thead>
+          <tbody>
+            ${garmentStats.data.map(g => `
+              <tr>
+                <td>${g.name || '—'}</td>
+                <td class="text-muted">${g.sku || '—'}</td>
+                <td class="text-muted">${g.category || '—'}</td>
+                <td style="color:${qualityColor(g.quality_score)}">${g.quality_score}</td>
+                <td>${g.total_assets}</td>
+                <td class="text-green">${g.approved_assets || 0}</td>
+                <td class="text-accent">${g.published_assets || 0}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header mt-24"><div class="section-title">Model Usage</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>Gender</th><th>Body Type</th><th>Skin Tone</th><th>Total Renders</th><th>Approved</th></tr></thead>
+          <tbody>
+            ${modelStats.data.length ? modelStats.data.map(m => `
+              <tr>
+                <td>${m.name}</td>
+                <td class="text-muted">${m.gender || '—'}</td>
+                <td class="text-muted">${m.body_type || '—'}</td>
+                <td class="text-muted">${m.skin_tone || '—'}</td>
+                <td>${m.total_assets}</td>
+                <td class="text-green">${m.approved || 0}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="6" class="table-empty">No data yet</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch(e) {
+    c.innerHTML = `<div class="loading-overlay text-red">${e.message}</div>`;
+  }
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+async function renderSettings(c, a) {
+  c.innerHTML = loading();
+  try {
+    const ws = await api.get('/workspace');
+    c.innerHTML = `
+      <div class="section-header"><div class="section-title">Workspace</div></div>
+      <div class="info-grid" style="margin-bottom:28px">
+        <div class="info-cell"><div class="info-cell-label">Name</div><div class="info-cell-value">${ws.name}</div></div>
+        <div class="info-cell"><div class="info-cell-label">Slug</div><div class="info-cell-value">${ws.slug}</div></div>
+        <div class="info-cell"><div class="info-cell-label">Plan</div><div class="info-cell-value">${ws.plan}</div></div>
+        <div class="info-cell"><div class="info-cell-label">Credits Remaining</div><div class="info-cell-value text-accent">${ws.credits.toLocaleString()}</div></div>
+      </div>
+
+      <div class="section-header"><div class="section-title">API Key</div></div>
+      <div class="info-grid" style="margin-bottom:28px">
+        <div class="info-cell" style="grid-column:1/-1">
+          <div class="info-cell-label">Current Key (masked)</div>
+          <div class="info-cell-value" style="font-family:var(--mono);letter-spacing:0.06em">
+            tryon_••••••••••••••••${S.apiKey.slice(-6)}
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn btn-sm btn-danger" onclick="rotateKey()">↻ Rotate API Key</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Try-On Engine</div></div>
+      <div class="info-grid" style="margin-bottom:28px">
+        <div class="info-cell">
+          <div class="info-cell-label">Active Engine</div>
+          <div class="info-cell-value">composite (dev stub)</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Swap Engine</div>
+          <div class="info-cell-value text-muted text-xs" style="margin-top:4px">
+            Set TRYON_ENGINE=fashn in .env and implement fashnEngine() in src/services/tryon.js
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Stats</div></div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="info-cell-label">Garments</div><div class="info-cell-value">${ws.stats.garments}</div></div>
+        <div class="info-cell"><div class="info-cell-label">Assets</div><div class="info-cell-value">${ws.stats.assets}</div></div>
+        <div class="info-cell"><div class="info-cell-label">Active Jobs</div><div class="info-cell-value">${ws.stats.active_jobs}</div></div>
+      </div>
+
+      <div class="divider"></div>
+      <button class="btn btn-danger" onclick="logout()">Sign Out</button>
+    `;
+  } catch(e) {
+    c.innerHTML = `<div class="loading-overlay text-red">${e.message}</div>`;
+  }
+}
+
+async function rotateKey() {
+  if (!confirm('This will invalidate your current API key. Continue?')) return;
+  try {
+    const r = await api.post('/workspace/api-keys/rotate', {});
+    S.apiKey = r.api_key;
+    localStorage.setItem('tryon_key', S.apiKey);
+    toast('API key rotated — saved locally', 'success');
+    await renderSettings(document.getElementById('content'), document.getElementById('topbar-actions'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function logout() {
+  localStorage.removeItem('tryon_key');
+  location.reload();
+}
+
+// ============================================================
+// INIT / AUTH
+// ============================================================
+async function loadWorkspaceInfo() {
+  try {
+    const ws = await api.get('/workspace');
+    S.workspace = ws;
+    document.getElementById('ws-name').textContent = ws.name;
+    document.getElementById('ws-credits').textContent = ws.credits.toLocaleString();
+    const pct = Math.min(100, (ws.credits / 10000) * 100);
+    document.getElementById('ws-credit-fill').style.width = `${pct}%`;
+  } catch {}
+}
+
+document.getElementById('login-btn').addEventListener('click', tryLogin);
+document.getElementById('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+async function tryLogin() {
+  const key = document.getElementById('login-key').value.trim();
+  const err = document.getElementById('login-error');
+  if (!key) { err.textContent = 'Enter your API key'; return; }
+  err.textContent = '';
+  S.apiKey = key;
+  try {
+    await api.get('/workspace');
+    localStorage.setItem('tryon_key', key);
+    document.getElementById('login-screen').classList.add('hidden');
+    await init();
+  } catch(e) {
+    err.textContent = 'Invalid API key — check and try again';
+    S.apiKey = '';
+  }
+}
+
+async function init() {
+  await loadWorkspaceInfo();
+  navigate('dashboard');
+  // Refresh workspace info every 30s
+  setInterval(loadWorkspaceInfo, 30000);
+}
+
+// Auto-login if key saved
+if (S.apiKey) {
+  api.get('/workspace')
+    .then(() => {
+      document.getElementById('login-screen').classList.add('hidden');
+      init();
+    })
+    .catch(() => { S.apiKey = ''; localStorage.removeItem('tryon_key'); });
+} else {
+  // Pre-fill if they want to paste
+  document.getElementById('login-key').focus();
+}
+</script>
+</body>
+</html>
